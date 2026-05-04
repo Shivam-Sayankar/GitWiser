@@ -1,6 +1,6 @@
 {
-  "name": "GitWiser",
-  "displayName": "gitwiser",
+  "name": "gitwiser",
+  "displayName": "GitWiser",
   "description": "AI powered context and commit assistant",
   "version": "0.0.1",
   "engines": {
@@ -9,13 +9,21 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onCommand:gitwiser.generateCommit"
+  ],
   "main": "./extension.js",
   "contributes": {
-    "commands": [{
-      "command": "GitWiser.helloWorld",
-      "title": "Hello World"
-    }]
+    "commands": [
+      {
+        "command": "gitwiser.helloWorld",
+        "title": "Hello World"
+      },
+      {
+        "command": "gitwiser.generateCommit",
+        "title": "GitWiser: Generate Commit Message"
+      }
+    ]
   },
   "scripts": {
     "lint": "eslint .",
@@ -23,11 +31,16 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.116.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
-    "eslint": "^9.39.3",
-    "@vscode/test-cli": "^0.0.12",
-    "@vscode/test-electron": "^2.5.2"
+    "@types/vscode": "^1.116.0",
+    "@vscode/test-cli": "^0.0.11",
+    "@vscode/test-electron": "^2.5.2",
+    "eslint": "^9.39.3"
+  },
+  "dependencies": {
+    "@google/genai": "^1.51.0",
+    "dotenv": "^17.4.2",
+    "node-fetch": "^3.3.2"
   }
 }

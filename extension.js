@@ -1,34 +1,86 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
-const vscode = require('vscode');
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
+const path = require('node:path')
+require('dotenv').config({
+	path: path.join(__dirname, '.env')
+})
+
+const vscode = require('vscode');
+const { exec } = require('child_process');
+const { GoogleGenAI } = require('@google/genai')
+
+const gemini = new GoogleGenAI({
+	apiKey: process.env.GEMINI_API_KEY
+})
 
 /**
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
+	console.log('Extension "GitWiser" is now active!');
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "GitWiser" is now active!');
+	let disposable = vscode.commands.registerCommand('gitwiser.generateCommit', async function () {
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with  registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('GitWiser.helloWorld', function () {
-		// The code you place here will be executed every time your command is executed
+		const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from gitwiser!');
-	});
+		if (!workspaceFolder) {
+			vscode.window.showErrorMessage('NO workspace folder found,')
+			return
+		}
+
+
+		exec('git diff --cached', { cwd: workspaceFolder }, async (err, stdout, stderr) => {
+			if (err || !stdout) {
+				vscode.window.showErrorMessage('No staged changes found')
+				return
+			}
+
+			const prompt = `You are an expert developer, who has been a guide to countless students.
+							For the given git diff, generate a concise and meaningful commit message.
+							Follow conventional commit formats if possible
+							Git diff:
+							${stdout}`
+
+			try {
+
+				const response = await gemini.models.generateContent({
+					model: "gemini-3-flash-preview",
+					contents: prompt
+				})
+
+				const message = response.text
+
+				if (!message) {
+					vscode.window.showErrorMessage('Failed to generate commit message')
+					return
+				}
+
+				const action = await vscode.window.showInformationMessage(
+					"GitWiser: Commit message generated",
+					"Copy",
+					"Show"
+				)
+
+				if (action === "Copy") {
+					await vscode.env.clipboard.writeText(message)
+					vscode.window.showInformationMessage('Copied to clipboard')
+				}
+				else if (action === "Show") {
+					vscode.window.showInformationMessage(message)
+				}
+			}
+
+			catch (error) {
+				console.log("Error: ", error)
+				vscode.window.showErrorMessage('AI request failed.')
+			}
+
+		})
+	})
 
 	context.subscriptions.push(disposable);
 }
 
-// This method is called when your extension is deactivated
-function deactivate() {}
+function deactivate() { }
 
 module.exports = {
 	activate,
