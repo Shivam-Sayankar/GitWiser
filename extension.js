@@ -17,7 +17,7 @@ function getStagedDiff(workspaceFolder) {
 	return new Promise((resolve, reject) => {
 		exec('git diff --cached', { cwd: workspaceFolder }, (err, stdout, stderr) => {
 			if (err || !stdout) {
-				reject('No staged changes found')
+				reject(new Error('No staged changes found'))
 			}
 			else {
 				resolve(stdout)
@@ -30,7 +30,7 @@ function getRecentCommits(workspaceFolder, numOfCommits) {
 	return new Promise((resolve, reject) => {
 		exec(`git log --oneline -n ${numOfCommits}`, { cwd: workspaceFolder }, (err, stdout, stderr) => {
 			if (err || !stdout) {
-				reject('No commit history found')
+				reject(new Error('No commit history found'))
 			}
 			else {
 				resolve(stdout)
@@ -45,11 +45,42 @@ async function getReadme(workspaceFolder) {
 		const data = await fs.readFile(readmePath, 'utf-8')
 		return data
 	}
-	catch (error) {
+	catch {
 		return null
 	}
 }
 
+async function showMarkdownPreview(content, title = "GitWiser Output") {
+
+	const safeTitle = title.replace(/\s+/g, "_")
+
+	const uri = vscode.Uri.parse(
+		`gitwiser:${safeTitle}.md?${encodeURIComponent(content)}`
+	)
+
+	const doc = await vscode.workspace.openTextDocument(uri)
+	await vscode.window.showTextDocument(doc, { preview: true })
+	await vscode.commands.executeCommand('markdown.showPreview', uri)
+}
+
+const gitWiserContentProvider = {
+	provideTextDocumentContent(uri) {
+		return decodeURIComponent(uri.query)
+	}
+}
+
+async function runWithProgress(title, task) {
+	return vscode.window.withProgress(
+		{
+			location: vscode.ProgressLocation.Notification,
+			title,
+			cancellable: false
+		},
+		async () => {
+			return await task()
+		}
+	)
+}
 
 /**
  * @param {vscode.ExtensionContext} context
@@ -57,11 +88,14 @@ async function getReadme(workspaceFolder) {
 function activate(context) {
 	console.log('Extension "GitWiser" is now active!');
 
+	context.subscriptions.push(
+		vscode.workspace.registerTextDocumentContentProvider('gitwiser', gitWiserContentProvider)
+	)
+
 	// Generate Commit Message
 	let generateCommitMessage = vscode.commands.registerCommand('gitwiser.generateCommit', async function () {
 
 		const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-
 		if (!workspaceFolder) {
 			vscode.window.showErrorMessage('NO workspace folder found,')
 			return
@@ -69,160 +103,132 @@ function activate(context) {
 
 		try {
 
-			const diff = await getStagedDiff(workspaceFolder)
+			await runWithProgress("GitWiser: Generating Commit Message...", async () => {
 
-			const prompt = `You are an expert developer, who has been a guide to countless students.
-							For the given git diff, generate a concise and meaningful commit message.
-							Follow conventional commit formats if possible
-							Git diff:
-							${diff}`
+				const diff = await getStagedDiff(workspaceFolder)
+				const prompt = `You are an expert developer, who has been a guide to countless students.
+								For the given git diff, generate a concise and meaningful commit message.
+								Follow conventional commit formats if possible
+								Git diff:
+								${diff}`.trim()
 
-			const response = await gemini.models.generateContent({
-				model: "gemini-flash-latest",
-				contents: prompt
+				const response = await gemini.models.generateContent({
+					model: "gemini-flash-latest",
+					contents: prompt
+				})
+
+				const commitMessage = response.text
+				if (!commitMessage) {
+					throw new Error('Failed to generate commit message')
+				}
+
+				await showMarkdownPreview(
+					`## Suggested Commit Message\n\n\`\`\`\n${commitMessage}\n\`\`\``,
+					"GitWiser Commit Message"
+				)
 			})
 
-			const commitMessage = response.text
-
-			if (!commitMessage) {
-				vscode.window.showErrorMessage('Failed to generate commit message')
-				return
-			}
-
-			const action = await vscode.window.showInformationMessage(
-				"GitWiser: Commit message generated",
-				"Copy",
-				"Show"
-			)
-
-			if (action === "Copy") {
-				await vscode.env.clipboard.writeText(commitMessage)
-				vscode.window.showInformationMessage('Copied to clipboard')
-			}
-			else if (action === "Show") {
-				vscode.window.showInformationMessage(commitMessage)
-			}
+			vscode.window.showInformationMessage('GitWiser: Generated Suitable Commit Message.')
 		}
 
 		catch (error) {
 			console.log("Error: ", error)
-			vscode.window.showErrorMessage('AI request failed.')
+			vscode.window.showErrorMessage(error.message || 'Something Went Wrong.')
 		}
 	})
 
 	let explainGitDiff = vscode.commands.registerCommand('gitwiser.explainDiffChanges', async function () {
 
 		const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-
 		if (!workspaceFolder) {
 			vscode.window.showErrorMessage('NO workspace folder found,')
 			return
 		}
 
 		try {
-			const diff = await getStagedDiff(workspaceFolder)
 
-			const prompt = `You are an experienced developer and guide to many developers/students
-Explain the following git diff in simple and clear English.
-Focus on:
-- What changes were made
-- Why they might have been made
-- Keep it concise
+			await runWithProgress("GitWiser: Explaining changes...", async () => {
 
-Git diff:
-${diff}`
+				const diff = await getStagedDiff(workspaceFolder)
+				const prompt = `You are an experienced developer and guide to many developers/students
+								Explain the following git diff in simple and clear English.
+								Focus on:
+								- What changes were made
+								- Why they might have been made
+								- Keep it concise
 
-			const response = await gemini.models.generateContent({
-				model: "gemini-flash-latest",
-				contents: prompt
+								Git diff:
+								${diff}`.trim()
+
+				const response = await gemini.models.generateContent({
+					model: "gemini-flash-latest",
+					contents: prompt
+				})
+
+				const explanation = response.text
+				if (!explanation) {
+					throw new Error('Failed to generate Explanation')
+				}
+
+				await showMarkdownPreview(explanation, "GitWiser Diff Explanation")
 			})
 
-			const explanation = response.text
-
-			if (!explanation) {
-				vscode.window.showErrorMessage('Failed to generate Explanation')
-				return
-			}
-
-			const action = await vscode.window.showInformationMessage(
-				"Gitwiser: Explanation generated",
-				"Show",
-				"Copy"
-			)
-
-			if (action === "Show") {
-				vscode.window.showInformationMessage(explanation)
-			}
-			else if (action === 'Copy') {
-				await vscode.env.clipboard.writeText(explanation)
-				vscode.window.showInformationMessage('Explanation Copied to Clipboard')
-			}
+			vscode.window.showInformationMessage('GitWiser: Generated Changes Explanation.')
 		}
 
 		catch (error) {
 			console.log("Error: ", error)
-			vscode.window.showErrorMessage('AI request failed.')
+			vscode.window.showErrorMessage(error.message || 'Something Went Wrong.')
 		}
-
 	})
 
 	let resumeContext = vscode.commands.registerCommand('gitwiser.resumeContext', async function () {
-		const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
 
+		const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
 		if (!workspaceFolder) {
 			vscode.window.showErrorMessage('No workspace folder found')
 			return
 		}
 
 		try {
-			const recentCommits = await getRecentCommits(workspaceFolder, 10)
-			const readme = await getReadme(workspaceFolder)
+			await runWithProgress("GitWiser: Reconstructing Project Context...", async () => {
 
-			const prompt = `You are an expert developer helping someone resume their project.
-			Here is the project README (if available):
-			${readme || "No README available"}
-			
-			Here is the recent git commit history:
-			${recentCommits}
+				const recentCommits = await getRecentCommits(workspaceFolder, 10)
+				const readme = await getReadme(workspaceFolder)
+				const prompt = `You are an expert developer helping someone resume their project.
+								Here is the project README (if available):
+								${readme || "No README available"}
+								
+								Here is the recent git commit history:
+								${recentCommits}
 
-			Based on this:
-			1. Give a brief summary on what the project is
-			1. Summarize what the developer has been working on
-			2. Identify the current state of the project
-			3. Suggest what they should work on next
+								Based on this:
+								1. Give a brief summary of the project
+								2. Summarize what the developer has been working on
+								3. Identify the current state of the project
+								4. Suggest what they should work on next
 
-			Keep it concise and actionable.`
+								Keep it concise and actionable.`.trim()
 
-			const response = await gemini.models.generateContent({
-				model: "gemini-flash-latest",
-				contents: prompt
+				const response = await gemini.models.generateContent({
+					model: "gemini-flash-latest",
+					contents: prompt
+				})
+
+				const summary = response.text
+				if (!summary) {
+					throw new Error('Failed to generate context summary')
+				}
+
+				await showMarkdownPreview(summary, "GitWiser Project Context")
 			})
 
-			const summary = response.text
-
-			if (!summary) {
-				vscode.window.showErrorMessage('Failed to generate context summary')
-				return
-			}
-
-			const action = await vscode.window.showInformationMessage(
-				"GitWiser: Project Context Ready",
-				"Show",
-				"Copy"
-			)
-
-			if (action === 'Show') {
-				vscode.window.showInformationMessage(summary)
-			}
-			else if (action === 'Copy') {
-				await vscode.env.clipboard.writeText(summary)
-				vscode.window.showInformationMessage('Project Context summary copied to clipboard')
-			}
+			vscode.window.showInformationMessage('GitWiser: Generated Project Context Summary.')
 		}
 
 		catch (error) {
 			console.log('Error:', error)
-			vscode.window.showErrorMessage('AI request failed.')
+			vscode.window.showErrorMessage(error.message || 'Something Went Wrong.')
 		}
 	})
 
