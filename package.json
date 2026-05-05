@@ -10,18 +10,19 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:gitwiser.generateCommit"
+    "onCommand:gitwiser.generateCommit",
+    "onCommand:gitwiser.explainDiffChanges"
   ],
   "main": "./extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "gitwiser.helloWorld",
-        "title": "Hello World"
-      },
-      {
         "command": "gitwiser.generateCommit",
         "title": "GitWiser: Generate Commit Message"
+      },
+      {
+        "command": "gitwiser.explainDiffChanges",
+        "title": "GitWiser: Explain Currently Staged Changes"
       }
     ]
   },
