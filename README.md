@@ -1,65 +1,146 @@
-# GitWiser README
+## 🧙‍♂️ GitWiser: AI-powered Git Assistant for VS Code
 
-This is the README for your extension "GitWiser". After writing up a brief description, we recommend including the following sections.
+GitWiser is a VS Code extension that helps developers understand their code context and generate meaningful commits using AI.
 
-## Features
+It solves a common problem developers face:
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+> - “What should I write in this commit?”
+> - “What exactly changed here?”
 
-For example if there is an image subfolder under your extension project workspace:
+> ### And, the classic Meme - "When you open your unfinished project from months ago"
+>
+> - "I don't understand my own code!? What was I even working on?!"
 
-\!\[feature X\]\(images/feature-x.png\)
+GitWiser acts as a lightweight AI layer on top of your Git workflow, helping you write better commits, understand changes, and quickly regain context when returning to a project.
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+## 📋 Features
 
-## Requirements
+### 🟣 AI Commit Message Generation
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+- Analyzes staged Git changes
+- Generates concise, conventional commit messages
+- Removes the guesswork from writing commits
 
-## Extension Settings
+### 🟣 Explain Code Changes
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+- Converts Git diffs into human-readable explanations
+- Helps quickly understand what changed and why
+- Especially useful when revisiting unfamiliar code
 
-For example:
+### 🟣 Resume Project Context
 
-This extension contributes the following settings:
+- Analyzes recent commits + README
+- Summarizes current project state
+- Suggests what to work on next
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+### 🟣 Native Markdown Preview Output
 
-## Known Issues
+- Outputs are rendered using VS Code’s built-in markdown preview
+- Uses virtual documents (no file clutter)
+- Clean, readable, and developer-friendly UI
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+### 🟣 Smooth UX
 
-## Release Notes
+- Progress indicators for AI operations
+- Minimal interruptions (no unnecessary popups)
+- One command → immediate result
 
-Users appreciate release notes as you update your extension.
+## 🛠️ Tech Stack
 
-### 1.0.0
+- VS Code Extension API
+- Node.js
+- Git CLI
+- Google Gemini API
+- JavaScript (ES6+)
 
-Initial release of ...
+## ⚙️ How It Works
 
-### 1.0.1
+GitWiser combines multiple sources of context:
 
-Fixed issue #.
+- Git staged diff (`git diff --cached`)
+- Recent commit history (`git log`)
+- Project README
 
-### 1.1.0
+This data is sent to an LLM (**Gemini**), which generates:
 
-Added features X, Y, and Z.
+- Commit messages
+- Code explanations
+- Project summaries
 
----
+The output is rendered using a custom **virtual document system**:
 
-## Working with Markdown
+- Uses a custom URI scheme (`gitwiser:`)
+- Implements `TextDocumentContentProvider`
+- Displays results in VS Code’s native markdown preview
 
-You can author your README using Visual Studio Code.  Here are some useful editor keyboard shortcuts:
+## 📝 Example Workflow
 
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux)
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux)
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets
+1. Stage your changes
+   ```
+   git add file1, file2, file3...
+   ```
+2. Run:
 
-## For more information
+   Hit - `Ctrl + Shift + P` and search for
 
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
+   ```
+   GitWiser: Generate Commit Message
+   ```
 
-**Enjoy!**
+3. Instantly see a formatted commit suggestion in a markdown preview tab
+
+## 🪛 Installation & Setup
+
+1. Clone the repository
+
+   ```
+   git clone https://github.com/Shivam-Sayankar/GitWiser.git
+   ```
+
+   or
+
+   ```
+   git clone git@github.com:Shivam-Sayankar/GitWiser.git
+   ```
+
+2. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+3. Create a `.env` file:
+
+   > Firstly, get your Gemini API key from [here](https://aistudio.google.com/app/apikey)
+
+   ```env
+   GEMINI_API_KEY=your_api_key_here
+   ```
+
+4. Run extension:
+   - Press `F5` in VS Code
+   - Open your project folder
+   - Hit - `Ctrl + Shift + P` and search for
+
+     ```
+     GitWiser: Generate Commit Message
+     ```
+
+## 💡 Why GitWiser?
+
+While tools like Copilot can assist with code, GitWiser focuses specifically on:
+
+- Git workflows
+- Developer context recovery
+- Reducing cognitive load
+
+Most developers rely on scattered tools or manual effort to understand their own code history. GitWiser brings that context directly into the editor.
+
+> It acts as a **lightweight AI assistant for version control workflows**.
+
+## 🔮 Future Improvements
+
+- Chat-based interaction with project context
+- Support for additional context sources (e.g., key config files like package.json for node projects)
+- Customizable output styles
+- Integration with GitHub repositories
