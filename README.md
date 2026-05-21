@@ -1,15 +1,17 @@
 ## 🧙‍♂️ GitWiser: AI-powered Git Assistant for VS Code
 
-GitWiser is a VS Code extension that helps developers understand their code context and generate meaningful commits using AI.
+GitWiser is a VS Code extension that helps developers understand repository context, generate meaningful commits, and regain project workflow context directly inside VS Code.
 
 It solves a common problem developers face:
 
-> - “What should I write in this commit?”
-> - “What exactly changed here?”
+- “What should I write in this commit?”
+- “What exactly changed here?”
 
-> ### And, the classic Meme - "When you open your unfinished project from months ago"
+And then comes the classic developer moment:
+
+> **"When you open your unfinished project from months ago"**
 >
-> - "I don't understand my own code!? What was I even working on?!"
+> _"I don't understand my own code!? What was I even working on?!"_
 
 GitWiser acts as a lightweight AI layer on top of your Git workflow, helping you write better commits, understand changes, and quickly regain context when returning to a project.
 
@@ -18,6 +20,7 @@ GitWiser acts as a lightweight AI layer on top of your Git workflow, helping you
 ### 🟣 AI Commit Message Generation
 
 - Analyzes staged Git changes
+- Supports repository-specific commit conventions through awareness of `CONTRIBUTING.md`.
 - Generates concise, conventional commit messages
 - Removes the guesswork from writing commits
 
@@ -43,25 +46,49 @@ GitWiser acts as a lightweight AI layer on top of your Git workflow, helping you
 
 - Progress indicators for AI operations
 - Minimal interruptions (no unnecessary popups)
-- One command → immediate result
+- One command execution → immediate result
 
-## 🛠️ Tech Stack
+## ⌨️ Available Commands
 
-- VS Code Extension API
-- Node.js
-- Git CLI
-- Google Gemini API
-- JavaScript (ES6+)
+### 1. GitWiser: Generate Commit Message
+
+Generates repository-aware commit messages using:
+
+- staged git diff
+- current branch
+- contribution guidelines
+
+Also suggests workflow improvements based on repository contribution guidelines
+
+---
+
+### 2. GitWiser: Explain Changes
+
+Explains staged git changes in simple, human-readable language.
+
+---
+
+### 3. GitWiser: Resume Project Context
+
+Analyzes:
+
+- recent commits
+- project history
+- repository documentation
+
+to help developers quickly resume work on a project.
 
 ## ⚙️ How It Works
 
 GitWiser combines multiple sources of context:
 
 - Git staged diff (`git diff --cached`)
+- Current Git branch
 - Recent commit history (`git log`)
-- Project README
+- Project README (`README.md`)
+- Contribution guidelines (`CONTRIBUTING.md`)
 
-This data is sent to an LLM (**Gemini**), which generates:
+This repository context is sent to an LLM (**Gemini**), which generates:
 
 - Commit messages
 - Code explanations
@@ -126,6 +153,10 @@ The output is rendered using a custom **virtual document system**:
      GitWiser: Generate Commit Message
      ```
 
+## 📄 Additional Documentation
+
+- [CHANGELOG](./CHANGELOG.md)
+
 ## 💡 Why GitWiser?
 
 While tools like Copilot can assist with code, GitWiser focuses specifically on:
@@ -140,7 +171,7 @@ Most developers rely on scattered tools or manual effort to understand their own
 
 ## 🔮 Future Improvements
 
-- Chat-based interaction with project context
+- Interactive chat-based repository assistance
 - Support for additional context sources (e.g., key config files like package.json for node projects)
 - Customizable output styles
 - Integration with GitHub repositories
