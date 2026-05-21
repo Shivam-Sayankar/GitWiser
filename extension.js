@@ -26,6 +26,19 @@ function getStagedDiff(workspaceFolder) {
 	})
 }
 
+function getCurrentBranch(workspaceFolder) {
+	return new Promise((resolve, reject) => {
+		exec('git branch --show-current', { cwd: workspaceFolder }, (err, stdout, stderr) => {
+			if (err || !stdout) {
+				reject(new Error('Could not detect current branch'))
+			}
+			else {
+				resolve(stdout.trim())
+			}
+		})
+	})
+}
+
 function getRecentCommits(workspaceFolder, numOfCommits) {
 	return new Promise((resolve, reject) => {
 		exec(`git log --oneline -n ${numOfCommits}`, { cwd: workspaceFolder }, (err, stdout, stderr) => {
@@ -43,6 +56,17 @@ async function getReadme(workspaceFolder) {
 	try {
 		const readmePath = path.join(workspaceFolder, 'README.md')
 		const data = await fs.readFile(readmePath, 'utf-8')
+		return data
+	}
+	catch {
+		return null
+	}
+}
+
+async function getContributionGuide(workspaceFolder) {
+	try {
+		const contributionGuidePath = path.join(workspaceFolder, 'CONTRIBUTING.md')
+		const data = await fs.readFile(contributionGuidePath, 'utf-8')
 		return data
 	}
 	catch {
@@ -106,11 +130,35 @@ function activate(context) {
 			await runWithProgress("GitWiser: Generating Commit Message...", async () => {
 
 				const diff = await getStagedDiff(workspaceFolder)
-				const prompt = `You are an expert developer, who has been a guide to countless students.
-								For the given git diff, generate a concise and meaningful commit message.
-								Follow conventional commit formats if possible
-								Git diff:
-								${diff}`.trim()
+				const currentBranch = await getCurrentBranch(workspaceFolder)
+				const contributionGuide = await getContributionGuide(workspaceFolder)
+				const prompt = `
+				You are an expert software engineer helping generate high-quality Git commit messages.
+
+				Your task:
+				1. Analyze the staged git diff
+				2. Follow commit conventions mentioned in the contribution guide if available
+				3. Otherwise follow conventional commit standards
+				4. Consider the current branch name while generating the commit message
+				5. If the contribution guide suggests a different branching strategy, mention it separately as a short suggestion
+
+				Current Branch:
+				${currentBranch}
+
+				Contribution Guide:
+				${contributionGuide || "No contribution guide available"}
+
+				Git Diff:
+				${diff}
+
+				Return ONLY the following format:
+
+				COMMIT_MESSAGE:
+				<commit message>
+
+				WORKFLOW_SUGGESTION:
+				<suggestions like changing branch, branch naming or anything else that the user missed out from the contribution guide, If no workflow suggestion is necessary, return "None">
+				`.trim().replaceAll('\t', '')
 
 				const response = await gemini.models.generateContent({
 					model: "gemini-flash-latest",
@@ -122,8 +170,32 @@ function activate(context) {
 					throw new Error('Failed to generate commit message')
 				}
 
+				const commitMatch = commitMessage.match(/COMMIT_MESSAGE:\s*([\s\S]*?)WORKFLOW_SUGGESTION:/)
+				const suggestionMatch = commitMessage.match(/WORKFLOW_SUGGESTION:\s*([\s\S]*)/)
+
+				const parsedCommit = commitMatch?.[1]?.trim() || "Unable to generate commit message"
+				const parsedSuggestion = suggestionMatch?.[1]?.trim() || "None"
+
+				let markdownOutput = `
+				# GitWiser Commit Suggestion
+
+				## Suggested Commit Message
+				\`\`\`bash
+				${parsedCommit}
+				\`\`\`
+				`
+
+				if (parsedSuggestion !== "None") {
+					markdownOutput += `
+
+					## Workflow Suggestions
+					${parsedSuggestion}`
+				}
+
+				markdownOutput = markdownOutput.trim().replaceAll('\t', '')
+
 				await showMarkdownPreview(
-					`## Suggested Commit Message\n\n\`\`\`\n${commitMessage}\n\`\`\``,
+					markdownOutput,
 					"GitWiser Commit Message"
 				)
 			})
