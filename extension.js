@@ -9,9 +9,17 @@ const vscode = require('vscode');
 const { exec } = require('child_process');
 const { GoogleGenAI } = require('@google/genai')
 
-const gemini = new GoogleGenAI({
-	apiKey: process.env.GEMINI_API_KEY
-})
+function getGeminiApiKey() {
+
+	const config = vscode.workspace.getConfiguration('gitwiser')
+
+	return (
+		config.get('geminiApiKey') ||
+		process.env.GEMINI_API_KEY
+	)
+}
+
+let gemini
 
 function getStagedDiff(workspaceFolder) {
 	return new Promise((resolve, reject) => {
@@ -115,6 +123,10 @@ function activate(context) {
 	context.subscriptions.push(
 		vscode.workspace.registerTextDocumentContentProvider('gitwiser', gitWiserContentProvider)
 	)
+
+	gemini = new GoogleGenAI({
+		apiKey: getGeminiApiKey()
+	})
 
 	// Generate Commit Message
 	let generateCommitMessage = vscode.commands.registerCommand('gitwiser.generateCommit', async function () {

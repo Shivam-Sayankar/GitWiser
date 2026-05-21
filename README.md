@@ -136,13 +136,29 @@ The output is rendered using a custom **virtual document system**:
    npm install
    ```
 
-3. Create a `.env` file:
+<!-- 3. Create a `.env` file:
 
    > Firstly, get your Gemini API key from [here](https://aistudio.google.com/app/apikey)
 
    ```env
    GEMINI_API_KEY=your_api_key_here
-   ```
+   ``` -->
+
+3. Configure Gemini API Key
+
+   After launching the extension:
+   - Open VS Code Settings
+   - Search for:
+     `GitWiser: Gemini API Key`
+   - Paste your Gemini API Key
+
+   You can get your Gemini API key from [here](https://aistudio.google.com/app/apikey)
+
+   > For local development, `.env` fallback is also supported.
+   >
+   > ```env
+   > GEMINI_API_KEY=your_api_key_here
+   > ```
 
 4. Run extension:
    - Press `F5` in VS Code

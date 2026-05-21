@@ -2,10 +2,24 @@
   "name": "gitwiser",
   "displayName": "GitWiser",
   "description": "AI powered context and commit assistant",
+  "icon": "images/gitwiser-logo.png",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.116.0"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Shivam-Sayankar/GitWiser"
+  },
+  "license": "MIT",
+  "keywords": [
+    "git",
+    "ai",
+    "commit",
+    "gemini",
+    "vscode",
+    "developer-tools"
+  ],
   "categories": [
     "Other"
   ],
@@ -16,6 +30,16 @@
   ],
   "main": "./extension.js",
   "contributes": {
+    "configuration": {
+      "title": "GitWiser",
+      "properties": {
+        "gitwiser.geminiApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Gemini API key used for GitWiser AI features."
+        }
+      }
+    },
     "commands": [
       {
         "command": "gitwiser.generateCommit",
