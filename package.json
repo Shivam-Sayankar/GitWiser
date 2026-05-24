@@ -1,7 +1,8 @@
 {
   "name": "gitwiser",
   "displayName": "GitWiser",
-  "description": "AI powered context and commit assistant",
+  "description": "AI-powered Git assistant for commit generation, code explanation, and project context recovery.",
+  "publisher": "shivam-sayankar",
   "icon": "images/gitwiser-logo.png",
   "version": "0.0.1",
   "engines": {
@@ -23,12 +24,7 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-    "onCommand:gitwiser.generateCommit",
-    "onCommand:gitwiser.explainDiffChanges",
-    "onCommand:gitwiser.resumeContext"
-  ],
-  "main": "./extension.js",
+  "main": "./dist/extension.js",
   "contributes": {
     "configuration": {
       "title": "GitWiser",
@@ -41,6 +37,10 @@
       }
     },
     "commands": [
+      {
+        "command": "gitwiser.refineCommit",
+        "title": "GitWiser: Refine Commit Message"
+      },
       {
         "command": "gitwiser.generateCommit",
         "title": "GitWiser: Generate Commit Message"
@@ -56,9 +56,11 @@
     ]
   },
   "scripts": {
+    "build": "webpack",
     "lint": "eslint .",
     "pretest": "npm run lint",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "vscode:prepublish": "npm run lint && npm run build"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
@@ -66,10 +68,11 @@
     "@types/vscode": "^1.116.0",
     "@vscode/test-cli": "^0.0.11",
     "@vscode/test-electron": "^2.5.2",
-    "eslint": "^9.39.3"
+    "eslint": "^9.39.3",
+    "webpack": "^5.107.1",
+    "webpack-cli": "^7.0.2"
   },
   "dependencies": {
-    "@google/genai": "^1.51.0",
-    "dotenv": "^17.4.2"
+    "@google/genai": "^1.51.0"
   }
 }
