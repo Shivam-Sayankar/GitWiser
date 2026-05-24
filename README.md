@@ -1,6 +1,6 @@
 ## 🧙‍♂️ GitWiser: AI-powered Git Assistant for VS Code
 
-GitWiser is a VS Code extension that helps developers understand repository context, generate meaningful commits, and regain project workflow context directly inside VS Code.
+GitWiser is a VS Code extension that helps developers generate meaningful commits, understand code changes, and quickly regain repository context directly inside VS Code.
 
 It solves a common problem developers face:
 
@@ -13,62 +13,51 @@ And then comes the classic developer moment:
 >
 > _"I don't understand my own code!? What was I even working on?!"_
 
-GitWiser acts as a lightweight AI layer on top of your Git workflow, helping you write better commits, understand changes, and quickly regain context when returning to a project.
+GitWiser acts as a lightweight AI layer on top of your Git workflow, helping you write better commits, understand changes, and quickly regain project context.
 
-## 📋 Features
+> ℹ️ **GitWiser requires a Gemini API key to use AI-powered features.**
+>
+> Get your API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
 
-### 🟣 AI Commit Message Generation
-
-- Analyzes staged Git changes
-- Supports repository-specific commit conventions through awareness of `CONTRIBUTING.md`.
-- Generates concise, conventional commit messages
-- Removes the guesswork from writing commits
-
-### 🟣 Explain Code Changes
-
-- Converts Git diffs into human-readable explanations
-- Helps quickly understand what changed and why
-- Especially useful when revisiting unfamiliar code
-
-### 🟣 Resume Project Context
-
-- Analyzes recent commits + README
-- Summarizes current project state
-- Suggests what to work on next
-
-### 🟣 Native Markdown Preview Output
-
-- Outputs are rendered using VS Code’s built-in markdown preview
-- Uses virtual documents (no file clutter)
-- Clean, readable, and developer-friendly UI
-
-### 🟣 Smooth UX
-
-- Progress indicators for AI operations
-- Minimal interruptions (no unnecessary popups)
-- One command execution → immediate result
-
-## ⌨️ Available Commands
+## 🤖 Commands
 
 ### 1. GitWiser: Generate Commit Message
 
-Generates repository-aware commit messages using:
+Generates commit messages using:
 
 - staged git diff
 - current branch
-- contribution guidelines
+- repository contribution guidelines
 
 Also suggests workflow improvements based on repository contribution guidelines
 
 ---
 
-### 2. GitWiser: Explain Changes
+### 2. GitWiser: Refine Commit Message
 
-Explains staged git changes in simple, human-readable language.
+Improves existing commit messages while preserving developer intent.
+
+Uses:
+
+- staged git diff
+- current branch
+- contribution guidelines
+
+Works directly with Git’s `COMMIT_EDITMSG` workflow inside VS Code.
 
 ---
 
-### 3. GitWiser: Resume Project Context
+### 3. GitWiser: Explain Changes
+
+Explains staged git changes in simple, human-readable language.
+
+Useful when:
+
+- reviewing changes
+
+---
+
+### 4. GitWiser: Resume Project Context
 
 Analyzes:
 
@@ -76,118 +65,89 @@ Analyzes:
 - project history
 - repository documentation
 
-to help developers quickly resume work on a project.
+to help developers quickly regain context when returning to a project.
 
-## ⚙️ How It Works
+## 📋 Features
 
-GitWiser combines multiple sources of context:
+### 🟣 Repository Context Awareness
 
-- Git staged diff (`git diff --cached`)
-- Current Git branch
-- Recent commit history (`git log`)
-- Project README (`README.md`)
-- Contribution guidelines (`CONTRIBUTING.md`)
+GitWiser uses multiple sources of repository context including:
 
-This repository context is sent to an LLM (**Gemini**), which generates:
+- staged diffs
+- Git branches
+- commit history
+- `README.md`
+- `CONTRIBUTING.md`
 
-- Commit messages
-- Code explanations
-- Project summaries
+to generate more relevant and repository-consistent responses.
 
-The output is rendered using a custom **virtual document system**:
+### 🟣 Native VS Code Markdown Preview
 
-- Uses a custom URI scheme (`gitwiser:`)
-- Implements `TextDocumentContentProvider`
-- Displays results in VS Code’s native markdown preview
+Outputs are rendered directly inside VS Code using native markdown previews for a clean and readable workflow.
 
-## 📝 Example Workflow
+### 🟣 Lightweight Workflow Integration
+
+Designed to work alongside existing Git workflows without requiring external tools or Git hooks.
+
+### 🟣 Contribution Guide Awareness
+
+GitWiser understands repository contribution conventions through `CONTRIBUTING.md` analysis.
+
+### 📝 Example Workflow
 
 1. Stage your changes
    ```
    git add file1, file2, file3...
    ```
-2. Run:
+2. Open the Command Palette
 
-   Hit - `Ctrl + Shift + P` and search for
+   ```bash
+   Ctrl + Shift + P
+   ```
+
+3. Run
 
    ```
    GitWiser: Generate Commit Message
    ```
 
-3. Instantly see a formatted commit suggestion in a markdown preview tab
+4. Instantly receive a formatted AI-generated commit suggestion inside VS Code.
 
-## 🪛 Installation & Setup
+## 🪛 Setup
 
-1. Clone the repository
-
-   ```
-   git clone https://github.com/Shivam-Sayankar/GitWiser.git
-   ```
-
-   or
-
-   ```
-   git clone git@github.com:Shivam-Sayankar/GitWiser.git
-   ```
-
-2. Install dependencies:
-
+1. Install GitWiser from the VS Code Marketplace
+2. Open VS Code Settings
+3. Search for:
    ```bash
-   npm install
+   GitWiser: Gemini API Key
    ```
+4. Paste your Gemini API key
 
-<!-- 3. Create a `.env` file:
+   Get your Gemini API key from: [Google AI Studio](https://aistudio.google.com/app/apikey)
 
-   > Firstly, get your Gemini API key from [here](https://aistudio.google.com/app/apikey)
-
-   ```env
-   GEMINI_API_KEY=your_api_key_here
-   ``` -->
-
-3. Configure Gemini API Key
-
-   After launching the extension:
-   - Open VS Code Settings
-   - Search for:
-     `GitWiser: Gemini API Key`
-   - Paste your Gemini API Key
-
-   You can get your Gemini API key from [here](https://aistudio.google.com/app/apikey)
-
-   > For local development, `.env` fallback is also supported.
-   >
-   > ```env
-   > GEMINI_API_KEY=your_api_key_here
-   > ```
-
-4. Run extension:
-   - Press `F5` in VS Code
-   - Open your project folder
-   - Hit - `Ctrl + Shift + P` and search for
-
-     ```
-     GitWiser: Generate Commit Message
-     ```
-
-## 📄 Additional Documentation
+## Additional Documentation
 
 - [CHANGELOG](./CHANGELOG.md)
+- [CONTRIBUTING](./CONTRIBUTING.md)
 
 ## 💡 Why GitWiser?
 
 While tools like Copilot can assist with code, GitWiser focuses specifically on:
 
 - Git workflows
-- Developer context recovery
-- Reducing cognitive load
+- Repository context recovery
+- Commit quality
+- reducing developer cognitive load
 
-Most developers rely on scattered tools or manual effort to understand their own code history. GitWiser brings that context directly into the editor.
+Most developers rely on scattered tools or manual effort to understand their own project history. GitWiser brings that context directly into the editor.
 
 > It acts as a **lightweight AI assistant for version control workflows**.
 
 ## 🔮 Future Improvements
 
+- Explanations for previous commits and Git history
 - Interactive chat-based repository assistance
-- Support for additional context sources (e.g., key config files like package.json for node projects)
+- Additional repository context sources
 - Customizable output styles
-- Integration with GitHub repositories
+- GitHub integration
+- Inline commit refinement workflows
