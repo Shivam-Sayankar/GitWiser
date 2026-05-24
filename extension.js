@@ -1,25 +1,40 @@
 
-const path = require('node:path')
-require('dotenv').config({
-	path: path.join(__dirname, '.env')
-})
-
-const fs = require('node:fs/promises')
+const path = require('path')
+const fs = require('fs/promises')
 const vscode = require('vscode');
 const { exec } = require('child_process');
 const { GoogleGenAI } = require('@google/genai')
+
+let geminiClient = null
 
 function getGeminiApiKey() {
 
 	const config = vscode.workspace.getConfiguration('gitwiser')
 
 	return (
-		config.get('geminiApiKey') ||
-		process.env.GEMINI_API_KEY
+		config.get('geminiApiKey')
 	)
 }
 
-let gemini
+function initializeGemini() {
+	if (geminiClient) {
+		return geminiClient
+	}
+
+	const apiKey = getGeminiApiKey()
+
+	if (!apiKey) {
+		throw new Error(
+			'Gemini API key not found. Configure it in VS Code settings.'
+		)
+	}
+
+	geminiClient = new GoogleGenAI({
+		apiKey
+	})
+
+	return geminiClient
+}
 
 function getStagedDiff(workspaceFolder) {
 	return new Promise((resolve, reject) => {
@@ -47,6 +62,46 @@ function getCurrentBranch(workspaceFolder) {
 	})
 }
 
+function getOpenCommitEditor() {
+	const allTabs = vscode.workspace.textDocuments
+
+	const target = 'COMMIT_EDITMSG'
+	const commitEditorTab = allTabs.find(tab => tab.fileName.endsWith(target));
+
+	if (!commitEditorTab) {
+		return null
+	}
+
+	else {
+		const commitEditorContent = commitEditorTab.getText()
+
+		let commitMessageCopy = commitEditorContent
+		commitMessageCopy = commitMessageCopy.split(/\r?\n/).filter((line) => {
+			return !line.trimStart().startsWith('#')
+		}).join('\n').trim()
+
+		return commitMessageCopy
+	}
+}
+
+function getCurrentCommit() {
+	try {
+		const currentCommitMessage = getOpenCommitEditor()
+
+		if (currentCommitMessage) {
+			return currentCommitMessage
+		}
+
+		else {
+			return null
+		}
+	}
+	catch (error) {
+		console.log(error)
+		return null
+	}
+}
+
 function getRecentCommits(workspaceFolder, numOfCommits) {
 	return new Promise((resolve, reject) => {
 		exec(`git log --oneline -n ${numOfCommits}`, { cwd: workspaceFolder }, (err, stdout, stderr) => {
@@ -66,7 +121,8 @@ async function getReadme(workspaceFolder) {
 		const data = await fs.readFile(readmePath, 'utf-8')
 		return data
 	}
-	catch {
+	catch (error) {
+		console.log(error)
 		return null
 	}
 }
@@ -77,7 +133,8 @@ async function getContributionGuide(workspaceFolder) {
 		const data = await fs.readFile(contributionGuidePath, 'utf-8')
 		return data
 	}
-	catch {
+	catch (error) {
+		console.log(error)
 		return null
 	}
 }
@@ -124,11 +181,107 @@ function activate(context) {
 		vscode.workspace.registerTextDocumentContentProvider('gitwiser', gitWiserContentProvider)
 	)
 
-	gemini = new GoogleGenAI({
-		apiKey: getGeminiApiKey()
+	let refineCommitMessage = vscode.commands.registerCommand('gitwiser.refineCommit', async function () {
+		const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+		if (!workspaceFolder) {
+			vscode.window.showErrorMessage('No workspace folder found,')
+			return
+		}
+
+		try {
+			await runWithProgress("GitWiser: Refining Commit Message", async () => {
+				const diff = await getStagedDiff(workspaceFolder)
+				const currentBranch = await getCurrentBranch(workspaceFolder)
+				const contributionGuide = await getContributionGuide(workspaceFolder)
+				const currentCommitMessage = getCurrentCommit()
+
+				if (!currentCommitMessage) {
+					vscode.window.showErrorMessage(
+						`No active commit message found.
+				
+						Tip:
+						Run \`git commit\` without \`-m\` to open the commit message editor inside VS Code, then try refining it again.`
+							.replaceAll('\t', '')
+					)
+					return
+				}
+
+				const prompt = `
+				You are an experienced software engineer helping improve git commit messages.
+
+				You will be given:
+				- the original commit message
+				- staged git diff
+				- current git branch
+				- repository contribution guidelines
+
+				Your task:
+				1. Refine the commit message for clarity, specificity, and consistency.
+				2. Follow any commit conventions mentioned in the contribution guidelines.
+				3. Preserve the original intent of the developer.
+				4. Ensure the message accurately reflects the actual code changes.
+				5. Do not invent changes that are not present in the git diff.
+				6. Keep the message concise and professional.
+
+				Then briefly explain:
+				- what was improved
+				- why the refined message is clearer or more accurate
+
+				Current Commit Message:
+				${currentCommitMessage}
+
+				Git Diff:
+				${diff}
+
+				Current Branch:
+				${currentBranch}
+
+				Contribution Guide:
+				${contributionGuide || "No contribution guide available"}
+
+				Return markdown output in the following structure:
+
+				## Refined Commit Message
+				\`\`\`bash
+				<refined message>
+				\`\`\`
+
+				## Original Commit Message
+				\`\`\`bash
+				<original message>
+				\`\`\`
+
+				## What Changed
+				- <change1>
+				- <change2>
+
+				## Workflow Suggestions
+				<suggestions like changing branch, branch naming or anything else that the user missed out from the contribution guide, If no workflow suggestion is necessary, drop this section entirely>
+				`.trim().replaceAll('\t', '')
+
+				const gemini = initializeGemini()
+				const response = await gemini.models.generateContent({
+					model: "gemini-flash-latest",
+					contents: prompt
+				})
+
+				const refinedCommitFeedback = response.text
+				if (!refinedCommitFeedback) {
+					throw new Error('Failed to refine commit message')
+				}
+
+				await showMarkdownPreview(
+					refinedCommitFeedback,
+					"GitWiser Commit Refinement"
+				)
+			})
+		}
+		catch (error) {
+			console.log("Error: ", error)
+			vscode.window.showErrorMessage(error.message || 'Something Went Wrong.')
+		}
 	})
 
-	// Generate Commit Message
 	let generateCommitMessage = vscode.commands.registerCommand('gitwiser.generateCommit', async function () {
 
 		const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
@@ -172,6 +325,7 @@ function activate(context) {
 				<suggestions like changing branch, branch naming or anything else that the user missed out from the contribution guide, If no workflow suggestion is necessary, return "None">
 				`.trim().replaceAll('\t', '')
 
+				const gemini = initializeGemini()
 				const response = await gemini.models.generateContent({
 					model: "gemini-flash-latest",
 					contents: prompt
@@ -189,8 +343,6 @@ function activate(context) {
 				const parsedSuggestion = suggestionMatch?.[1]?.trim() || "None"
 
 				let markdownOutput = `
-				# GitWiser Commit Suggestion
-
 				## Suggested Commit Message
 				\`\`\`bash
 				${parsedCommit}
@@ -212,7 +364,7 @@ function activate(context) {
 				)
 			})
 
-			vscode.window.showInformationMessage('GitWiser: Generated Suitable Commit Message.')
+			vscode.window.showInformationMessage('GitWiser: Commit message generated successfully.')
 		}
 
 		catch (error) {
@@ -242,8 +394,9 @@ function activate(context) {
 								- Keep it concise
 
 								Git diff:
-								${diff}`.trim()
+								${diff}`.trim().replaceAll('\t', '')
 
+				const gemini = initializeGemini()
 				const response = await gemini.models.generateContent({
 					model: "gemini-flash-latest",
 					contents: prompt
@@ -282,7 +435,7 @@ function activate(context) {
 				const prompt = `You are an expert developer helping someone resume their project.
 								Here is the project README (if available):
 								${readme || "No README available"}
-								
+
 								Here is the recent git commit history:
 								${recentCommits}
 
@@ -292,8 +445,9 @@ function activate(context) {
 								3. Identify the current state of the project
 								4. Suggest what they should work on next
 
-								Keep it concise and actionable.`.trim()
+								Keep it concise and actionable.`.trim().replaceAll('\t', '')
 
+				const gemini = initializeGemini()
 				const response = await gemini.models.generateContent({
 					model: "gemini-flash-latest",
 					contents: prompt
@@ -316,10 +470,12 @@ function activate(context) {
 		}
 	})
 
-	context.subscriptions.push(generateCommitMessage);
-	context.subscriptions.push(explainGitDiff);
+	context.subscriptions.push(refineCommitMessage)
+	context.subscriptions.push(generateCommitMessage)
+	context.subscriptions.push(explainGitDiff)
 	context.subscriptions.push(resumeContext)
 }
+
 
 function deactivate() { }
 
