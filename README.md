@@ -125,11 +125,6 @@ GitWiser understands repository contribution conventions through `CONTRIBUTING.m
 
    Get your Gemini API key from: [Google AI Studio](https://aistudio.google.com/app/apikey)
 
-## Additional Documentation
-
-- [CHANGELOG](./CHANGELOG.md)
-- [CONTRIBUTING](./CONTRIBUTING.md)
-
 ## 💡 Why GitWiser?
 
 While tools like Copilot can assist with code, GitWiser focuses specifically on:
@@ -151,3 +146,15 @@ Most developers rely on scattered tools or manual effort to understand their own
 - Customizable output styles
 - GitHub integration
 - Inline commit refinement workflows
+
+## Logo & Icon Attributes
+
+- Wizard/Witch icon created by <a href="https://www.flaticon.com/free-icons/witch" title="witch icons">Victoruler - Flaticon</a>
+- GitHub logo by <a href="https://www.flaticon.com/free-icons/github" title="github icons">Laisa Islam Ani - Flaticon</a>
+
+> Icons modified with custom gradient and combined to create GitWiser logo.
+
+## Additional Documentation
+
+- [CHANGELOG](./CHANGELOG.md)
+- [CONTRIBUTING](./CONTRIBUTING.md)
